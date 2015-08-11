@@ -155,7 +155,6 @@ class FinMark:
 		
 b = Board()
 b.addPreMark('X', 1, 2, 4)
-b.addPreMark('O', 4, 2, 6)
 b.addPreMark('O', 2, 2, 5)
 b.addPreMark('X', 3, 4, 5)
 b.printBoard()
