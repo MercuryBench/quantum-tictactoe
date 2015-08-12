@@ -11,13 +11,16 @@ class Board:
 	
 	def addPreMark(self, letter, num, pos1, pos2):
 		self.fields[pos1].addPreMark(PreMark(letter, num, pos1, pos2))
-		self.fields[pos2].addPreMark(PreMark(letter, num, pos2, pos1))
+		m = PreMark(letter, num, pos2, pos1)
+		self.fields[pos2].addPreMark(m)
+		return m
 	
 	def addFinMark(self, letter, pos):
 		self.fields[pos].addFinMark(FinMark(letter, pos))
 		
 	def hasWon(self, letter):
 		bo = self.realBoard()
+		le = letter
 		return ((bo[7] == le and bo[8] == le and bo[9] == le) or # across the top
 
 		(bo[4] == le and bo[5] == le and bo[6] == le) or # across the middle
@@ -43,9 +46,28 @@ class Board:
 		return bo
 		
 	def printBoard(self):
+	    fs = self.fields
+	    s7 = fs[7].fieldToString()
+	    s8 = fs[8].fieldToString()
+	    s9 = fs[9].fieldToString()
+	    print(s7+" "*(12-len(s7)) + "|" + s8 + " "*(12-len(s8)) +"|" + s9)
+	    print("------------------------------------------")
+	    s4 = fs[4].fieldToString()
+	    s5 = fs[5].fieldToString()
+	    s6 = fs[6].fieldToString()
+	    print(s4+" "*(12-len(s4)) + "|" +s5 + " "*(12-len(s5)) +"|" + s6)
+	    
+	    print("------------------------------------------")
+	    s1 = fs[1].fieldToString()
+	    s2 = fs[2].fieldToString()
+	    s3 = fs[3].fieldToString()
+	    print(s1+" "*(12-len(s1)) + "|" +s2 + " "*(12-len(s2)) +"|" + s3)
+	    
+	    print("------------------------------------------")
+	    """
 		for f in self.fields:
 			print("Field" + str(f.num))
-			print(f.fieldToString())
+			print(f.fieldToString())"""
 			
 	def isSpaceFree(self, move):
 		# Return true if the passed move is free on the passed board.
@@ -61,40 +83,50 @@ class Board:
 		
 	def makeSteps(self, currentFieldNum, initialFieldNum):
 		#print("Standing in {0}".format(currentFieldNum))
-		for m in self.fields[currentFieldNum].contents:
+		conts = self.fields[currentFieldNum].contents
+		listOfNext = [c.copy() for c in conts]
+		#listOfNext = list(self.fields[currentFieldNum].contents)
+		for m in listOfNext:
 			#print("Found mark {0}{1}".format(m.letter, m.num))
 			if isinstance(m, FinMark):
 				continue
 			nextNum = m.otherpos
 			#print("Transition to {0}".format(nextNum))
-			self.fields[currentFieldNum].deletePreMark_(m.letter, m.num)
-			self.fields[nextNum].deletePreMark_(m.letter, m.num)
-			#self.printBoard()
+			cboard = self.copy()
+			cboard.fields[currentFieldNum].deletePreMark_(m.letter, m.num)
+			cboard.fields[nextNum].deletePreMark_(m.letter, m.num)
+			#print("New board")
+			#cboard.printBoard()
 			if nextNum == initialFieldNum:
 				#print("Success! at {0}".format(initialFieldNum))
-				return initialFieldNum
+				return m
 			else:
-				return self.makeSteps(nextNum, initialFieldNum)
+				res = cboard.makeSteps(nextNum, initialFieldNum)
+				if res:
+				  return res
+				else:
+				  continue
 		
 	def findCycle(self, markStartingFrom):		
 		copyBoard = self.copy()
-		if copyBoard.makeSteps(markStartingFrom, markStartingFrom):
-			return True
+		m = copyBoard.makeSteps(markStartingFrom, markStartingFrom)
+		return m
+	
 	
 	def collapse(self, markletter, marknum, collapseAt, collapseNotAt):
 		currentField = self.fields[collapseAt]
 		otherField = self.fields[collapseNotAt]
-		print("Deleting premark {0}{1}".format(markletter, str(marknum)))
+		#print("Deleting premark {0}{1}".format(markletter, str(marknum)))
 		currentField.deletePreMark_(markletter, marknum)
 		otherField.deletePreMark_(markletter, marknum)
 		listOfMarks = list(currentField.contents)
-		print("inserting final mark {0} at {1}".format(markletter, collapseAt))
+		#print("inserting final mark {0} at {1}".format(markletter, collapseAt))
 		currentField.addFinMark(FinMark(markletter, collapseAt))
 		for markToBeReplaced in listOfMarks:
 			m = markToBeReplaced
 			if isinstance(m, FinMark):
 				continue
-			print("has also mark {0}{1}".format(m.letter, str(m.num)))
+			#print("has also mark {0}{1}".format(m.letter, str(m.num)))
 		for markToBeReplaced in listOfMarks:
 			m = markToBeReplaced
 			if isinstance(m, FinMark):
@@ -170,16 +202,78 @@ class FinMark:
 	def copy(self):
 		fm = FinMark(self.letter, self.pos)
 		return fm
-		
-b = Board()
-b.addPreMark('X', 1, 2, 4)
-b.addPreMark('O', 4, 2, 6)
-b.addPreMark('O', 2, 2, 5)
-b.addPreMark('X', 3, 4, 5)
-b.printBoard()
+	
+def getPlayerMove(board):
+	# Let the player type in their move.
+	move = ' '
+	move2 = ' '
+	while ((move not in '1 2 3 4 5 6 7 8 9'.split() or move2 not in '1 2 3 4 5 6 7 8 9'.split()) and move == move2) or not board.isSpaceFree(int(move)) or not board.isSpaceFree(int(move2)):
+		print('What is your next move? (1-9)')
+		move = raw_input()
+		print('Second field? (1-9)')
+		move2 = raw_input()
+	return int(move), int(move2)
+      
+def getPlayerCollapse(board, lastMark):
+    print("You may collapse letter {0}{1} on field {2} or {3}".format(lastMark.letter, lastMark.num, lastMark.pos, lastMark.otherpos))
+    choice = None
+    while (not choice or choice not in [lastMark.pos, lastMark.otherpos]):
+      print('What choice do you want to make? ({0}, {1})'.format(lastMark.pos, lastMark.otherpos))
+      choice = int(raw_input())
+    if choice == lastMark.pos:
+      return choice, lastMark.otherpos
+    else:
+      return choice, lastMark.pos
+      
+      
+#######################################
+def isBoardFull(b):
+	# Return True if every space on the board has been taken. Otherwise return False.
+	for i in range(1, 10):
+		if b.isSpaceFree(i):
+			return False
+	return True
+
+def inputPlayerLetter():
+   # Lets the player type which letter they want to be.
+   # Returns a list with the player letter as the first item and the computer letter as the # second.
+	letter = ''
+	while not (letter == 'X' or letter == 'O'):
+		print('Do you want to be X or O?')
+		letter = raw_input().upper()
+		# the first element in the list is the player letter, the second is the #computer letter.
+	if letter == 'X':
+		return ['X', 'O']
+	else:
+		return ['O', 'X']
+
+def whoGoesFirst():
+	# Randomly choose the player who goes first.
+	if random.randint(0, 1) == 0:
+		return 'player 2'
+	else:
+		return 'player 1'
+
+def playAgain():
+	# This function returns True if the player wants to play again, otherwise it returns False.
+	print('Do you want to play again? (yes or no)')
+	return raw_input().lower().startswith('y')
+
+"""b = Board()
+b.addPreMark('X', 0, 1, 9)
+b.addPreMark('O', 1, 2, 3)
+b.addPreMark('X', 2, 1, 3)
+b.addPreMark('O', 3, 2, 7)
+b.addPreMark('X', 4, 2, 9)
+b.printBoard()"""
+"""
+b = Board() 
+b.addPreMark('O', 3, 2, 7)
+b.addPreMark('X', 4, 2, 9)
+
 b2 = b.copy()
-print(b2.makeSteps(2, 2))
-print(b.realBoard())
+b2.makeSteps(2, 9)"""
+#print(b.realBoard())
 
 """def drawBoard(board):
 		# This function prints out the board that it was passed.
