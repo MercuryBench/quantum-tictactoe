@@ -1,40 +1,41 @@
 import random
 
+# Huge parts of this code are stolen from Al Sweigart's sample code for Tic Tac Toe implementation on
+# https://inventwithpython.com/chapter10.html
+
+"""
+Preliminary Marks (e.g. the two instances of "cross1" are called premarks, final marks (obtained after collaps) are called finmarks.
+
+"""
+
 class Board:
-	def __init__(self):
+	def __init__(self): # Initialize Board with list of empty fields
 		self.fields = [Field(n) for n in range(10)] # ignore index 0
 		
-	def copy(self):
+	def copy(self): # make a (non-referential) copy of a board
 		b = Board()
 		b.fields = [f.copy() for f in self.fields]
 		return b
 	
-	def addPreMark(self, letter, num, pos1, pos2):
+	def addPreMark(self, letter, num, pos1, pos2): # add a premark with letter in {X,O} with its specific number at positions 1 and 2
 		self.fields[pos1].addPreMark(PreMark(letter, num, pos1, pos2))
 		m = PreMark(letter, num, pos2, pos1)
 		self.fields[pos2].addPreMark(m)
 		return m
 	
-	def addFinMark(self, letter, pos):
+	def addFinMark(self, letter, pos): # add a finmark with letter in {X, O} at position pos
 		self.fields[pos].addFinMark(FinMark(letter, pos))
 		
-	def hasWon(self, letter):
+	def hasWon(self, letter): # check whether the letter (in {X, O}) has won the game
 		bo = self.realBoard()
 		le = letter
 		return ((bo[7] == le and bo[8] == le and bo[9] == le) or # across the top
-
 		(bo[4] == le and bo[5] == le and bo[6] == le) or # across the middle
-
 		(bo[1] == le and bo[2] == le and bo[3] == le) or # across the bottom
-
 		(bo[7] == le and bo[4] == le and bo[1] == le) or # down the left side
-
 		(bo[8] == le and bo[5] == le and bo[2] == le) or # down the middle
-
 		(bo[9] == le and bo[6] == le and bo[3] == le) or # down the right side
-
 		(bo[7] == le and bo[5] == le and bo[3] == le) or # diagonal
-
 		(bo[9] == le and bo[5] == le and bo[1] == le)) # diagonal
 
 	def realBoard(self): # returns only the "real" board, i.e. measured fields
@@ -45,7 +46,7 @@ class Board:
 					bo[f.num] = m.letter
 		return bo
 		
-	def printBoard(self):
+	def printBoard(self): # a crude representation of the board on screen
 	    fs = self.fields
 	    s7 = fs[7].fieldToString()
 	    s8 = fs[8].fieldToString()
@@ -72,39 +73,38 @@ class Board:
 	def isSpaceFree(self, move):
 		# Return true if the passed move is free on the passed board.
 		board = self.realBoard()
+		if str(move) not in '1 2 3 4 5 6 7 8 9'.split(' '):
+		  return False
 		return board[move] == ' '
 
-	def getListOfMoves(self):
+	def getListOfMoves(self): # returns all possible moves
 		listOfMoves = []
 		for move in range(1, 10):
 			if self.isSpaceFree(board, move):
 				listOfMoves.append(move)
 		return listOfMoves
 		
+	# the following function is the most difficult one: It is used recursively to find a cycle in the maze of premarks in order to 
+	# find out whether a collaps will take place
 	def makeSteps(self, currentFieldNum, initialFieldNum):
-		#print("Standing in {0}".format(currentFieldNum))
-		conts = self.fields[currentFieldNum].contents
+		conts = self.fields[currentFieldNum].contents # all possible marks from the current position
 		listOfNext = [c.copy() for c in conts]
-		#listOfNext = list(self.fields[currentFieldNum].contents)
 		for m in listOfNext:
-			#print("Found mark {0}{1}".format(m.letter, m.num))
 			if isinstance(m, FinMark):
 				continue
 			nextNum = m.otherpos
-			#print("Transition to {0}".format(nextNum))
 			cboard = self.copy()
+			# delete the current mark from the copied board in order to not to use this connection as a path later
 			cboard.fields[currentFieldNum].deletePreMark_(m.letter, m.num)
 			cboard.fields[nextNum].deletePreMark_(m.letter, m.num)
-			#print("New board")
-			#cboard.printBoard()
-			if nextNum == initialFieldNum:
-				#print("Success! at {0}".format(initialFieldNum))
+			# in case we found our way back, we return this mark
+			if nextNum == initialFieldNum: 
 				return m
-			else:
+			else: # if we didn't make it yet, we go one step deeper
 				res = cboard.makeSteps(nextNum, initialFieldNum)
-				if res:
+				if res: 
 				  return res
-				else:
+				else: # if "one steep deeper" runs into a dead end, we take the other option in the list above
 				  continue
 		
 	def findCycle(self, markStartingFrom):		
@@ -112,21 +112,18 @@ class Board:
 		m = copyBoard.makeSteps(markStartingFrom, markStartingFrom)
 		return m
 	
-	
+	# this function collapses the entanglement starting with markletter,marknum at position [collapseAt], which has its second pos as [collapseNotAt]
 	def collapse(self, markletter, marknum, collapseAt, collapseNotAt):
 		currentField = self.fields[collapseAt]
 		otherField = self.fields[collapseNotAt]
-		#print("Deleting premark {0}{1}".format(markletter, str(marknum)))
 		currentField.deletePreMark_(markletter, marknum)
 		otherField.deletePreMark_(markletter, marknum)
 		listOfMarks = list(currentField.contents)
-		#print("inserting final mark {0} at {1}".format(markletter, collapseAt))
 		currentField.addFinMark(FinMark(markletter, collapseAt))
 		for markToBeReplaced in listOfMarks:
 			m = markToBeReplaced
 			if isinstance(m, FinMark):
 				continue
-			#print("has also mark {0}{1}".format(m.letter, str(m.num)))
 		for markToBeReplaced in listOfMarks:
 			m = markToBeReplaced
 			if isinstance(m, FinMark):
@@ -134,6 +131,8 @@ class Board:
 			self.collapse(m.letter, m.num, m.otherpos, m.pos)
 				
 		
+		
+# the following classes Field, PreMark and FinMark are boring but contain a more compact description of the atomical objects Field, PreMark, FinMark in the game
 class Field:
 	def __init__(self, num):
 		self.contents = []
@@ -215,6 +214,7 @@ def getPlayerMove(board):
 	return int(move), int(move2)
       
 def getPlayerCollapse(board, lastMark):
+    # Let the player type in their preferred collapse target
     print("You may collapse letter {0}{1} on field {2} or {3}".format(lastMark.letter, lastMark.num, lastMark.pos, lastMark.otherpos))
     choice = None
     while (not choice or choice not in [lastMark.pos, lastMark.otherpos]):
@@ -259,36 +259,3 @@ def playAgain():
 	print('Do you want to play again? (yes or no)')
 	return raw_input().lower().startswith('y')
 
-"""b = Board()
-b.addPreMark('X', 0, 1, 9)
-b.addPreMark('O', 1, 2, 3)
-b.addPreMark('X', 2, 1, 3)
-b.addPreMark('O', 3, 2, 7)
-b.addPreMark('X', 4, 2, 9)
-b.printBoard()"""
-"""
-b = Board() 
-b.addPreMark('O', 3, 2, 7)
-b.addPreMark('X', 4, 2, 9)
-
-b2 = b.copy()
-b2.makeSteps(2, 9)"""
-#print(b.realBoard())
-
-"""def drawBoard(board):
-		# This function prints out the board that it was passed.
-      # "board" is a list of 10 strings representing the board (ignore index 0)
-		print('   |   |')
-		print(' ' + board[7] + ' | ' + board[8] + ' | ' + board[9])
-		print('   |   |')
-		print('-----------')
-		print('   |   |')
-		print(' ' + board[4] + ' | ' + board[5] + ' | ' + board[6])
-		print('   |   |')
-		print('-----------')
-		print('   |   |')
-		print(' ' + board[1] + ' | ' + board[2] + ' | ' + board[3])
-		print('   |   |')
-		
-def drawField(field):		
-		return"""

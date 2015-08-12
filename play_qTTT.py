@@ -1,22 +1,21 @@
 from qTTT import *
-while(True):
+while(True): # loop for games
   theBoard = Board()
   playerLetter, player2letter = inputPlayerLetter()
   turn = whoGoesFirst()
   print('The ' + turn + ' will go first.')
-  gameIsPlaying = True
-  lastMark = None
-  numMark = 0
-  while (gameIsPlaying):
+  lastMark = None # needed for keeping track of the last mark in order to facilitate collapse
+  numMark = 0 # needed for numbering marks
+  while (True): # loop for turns
     if turn == 'player':
       print("It's player 1's turn")
-      # Player's turn.
+      # Player 1's turn.
       theBoard.printBoard()
-      # Check whether there is entanglement
+      # Check whether there is entanglement after player 2's move
       if lastMark:
 	if theBoard.findCycle(lastMark.pos):
-	  col = getPlayerCollapse(theBoard, lastMark) # returns pos, then notpos
-	  theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
+	  col = getPlayerCollapse(theBoard, lastMark) # let player 1 decide where to put the last mark
+	  theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1]) 
 	  theBoard.printBoard()
       if theBoard.hasWon(playerLetter):
 	print("\n")
@@ -36,7 +35,7 @@ while(True):
 	  break
 	else:
 	  turn = "player2"
-      
+      # if the game hasn't ended, make a move
       pos1, pos2 = getPlayerMove(theBoard)
       
       lastMark = theBoard.addPreMark(playerLetter, numMark*2, pos1, pos2)
@@ -45,10 +44,10 @@ while(True):
       print("It's player 2's turn")
       # Player 2's turn or computer.
       theBoard.printBoard()
-      # Check whether there is entanglement
+      # Check whether there is entanglement after player 1's move
       if lastMark:
 	if theBoard.findCycle(lastMark.pos):
-	  col = getPlayerCollapse(theBoard, lastMark) # returns pos, then notpos
+	  col = getPlayerCollapse(theBoard, lastMark) # let player 2 decide where to put the last mark
 	  theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
 	  theBoard.printBoard()
       if theBoard.hasWon(playerLetter):
@@ -69,6 +68,8 @@ while(True):
 	  break
 	else:
 	  turn = "player"
+	  
+      # if the game hasn't ended, make a move
       pos1, pos2 = getPlayerMove(theBoard)
       lastMark = theBoard.addPreMark(player2letter, numMark*2+1, pos1, pos2)
       
