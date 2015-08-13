@@ -68,7 +68,7 @@ while(True): # loop for games
 						theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
 						theBoard.printBoard()
 					else:
-						col = getComputerCollapse_Random(theBoard, lastMar)
+						col = getComputerCollapse_Random(theBoard, lastMark)
 						theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
 						theBoard.printBoard()
 			p1won, p1lms = theBoard.hasWon(playerLetter)

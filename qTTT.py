@@ -100,10 +100,67 @@ class Board:
 		  return False
 		return board[move] == ' '
 
+	def makeMove(self, movecode):	# compact way of making all possible varieties of moves:
+		# 1) only a normal move
+		# 2) a collapse and a normal move
+		# 3) only a collapse, after which the game ends
+		# coding works as follows: movecode = [collapse_pars, move_pars], where
+		# collapse_pars = "X328" means X3 collapses at position 2, not at position 8
+		# collapse_pars = "" means: no collapse possible
+		# move_pars = "O421" means: O3 at positions 2 and 1
+		# move_pars = "" means: after the collapse, there is no move possible as the match ends
+		# both shouldn't be empty at the same time
+		c_p = movecode[0]
+		m_p = movecode[1]
+		if c_p != "":
+			self.collapse(c_p[0], c_p[1], int(c_p[2]), int(c_p[3]))
+		if m_p != "":
+			self.addPreMark(m_p[0], m_p[1], int(m_p[2]), int(m_p[3]))
+
+	def getListOfMovecodes(self, lastMark, letter, num): # this is a sophisticated version of getListOfMoves because it tries to find all possible combinations of collapses and premark settings in one step
+		# first find possibility of collapse
+		collapseNecessary = False
+		c_p1 = ""
+		c_p2 = ""
+		if (self.findCycle(lastMark.pos)):
+			collapseNecessary = True
+			c_p1 = lastMark.letter + str(lastMark.num) + str(lastMark.pos) + str(lastMark.otherpos)
+			print(c_p1)
+			c_p2 = lastMark.letter + str(lastMark.num) + str(lastMark.otherpos) + str(lastMark.pos)
+			print(c_p2)
+		copyboard1 = self.copy()
+		copyboard2 = self.copy()
+		if collapseNecessary:
+			copyboard1.collapse(c_p1[0], c_p1[1], int(c_p1[2]), int(c_p1[3]))
+			copyboard2.collapse(c_p2[0], c_p2[1], int(c_p2[2]), int(c_p2[3]))
+		
+		# then try all possible following premark settings
+		listFreePos1 = [pm for pm in range(1, 10) if copyboard1.isSpaceFree(pm)]
+		listFreePos2 = [pm for pm in range(1, 10) if copyboard2.isSpaceFree(pm)]	
+		listPossPM1 = []
+		listPossPM2 = []
+		for m in range(len(listFreePos1)):
+			for n in range(m+1, len(listFreePos1)):
+				listPossPM1.append(letter + str(num) + str(listFreePos1[m]) + str(listFreePos1[n]))	
+		if collapseNecessary:
+			for m in range(len(listFreePos2)):
+				for n in range(m+1, len(listFreePos2)):
+					listPossPM2.append(letter + str(num) + str(listFreePos2[m]) + str(listFreePos2[n]))
+		lomc = []
+		if len(listPossPM1) > 0:
+			for m_p1 in listPossPM1:
+				lomc.append([c_p1, m_p1])
+			if collapseNecessary: # only if there is a collapse first, those two options are different
+				for m_p2 in listPossPM2:
+					lomc.append([c_p2, m_p2])
+		else: lomc = [[c_p1, ""], [c_p2, ""]]
+		return lomc
+			
+
 	def getListOfMoves(self): # returns all possible moves
 		listOfMoves = []
 		for move in range(1, 10):
-			if self.isSpaceFree(board, move):
+			if self.isSpaceFree(move):
 				listOfMoves.append(move)
 		return listOfMoves
 		
@@ -313,3 +370,15 @@ def playAgain():
 	print('Do you want to play again? (yes or no)')
 	return raw_input().lower().startswith('y')
 
+b = Board()
+b.addFinMark('O', 2, 1)
+b.addFinMark('X', 4, 2)
+b.addFinMark('O', 5, 3)
+b.addFinMark('X', 6, 4)
+b.addFinMark('O', 7, 5)
+b.addFinMark('X', 8, 6)
+b.addPreMark('O', 7, 3, 9)
+b.addPreMark('X', 8, 1, 9)
+pm = b.addPreMark('O', 9, 1, 3)
+b.printBoard()
+print(b.getListOfMovecodes(pm, 'X', 10))
