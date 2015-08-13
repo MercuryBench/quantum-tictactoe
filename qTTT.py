@@ -23,28 +23,51 @@ class Board:
 		self.fields[pos2].addPreMark(m)
 		return m
 	
-	def addFinMark(self, letter, pos): # add a finmark with letter in {X, O} at position pos
-		self.fields[pos].addFinMark(FinMark(letter, pos))
+	def addFinMark(self, letter, pos, num): # add a finmark with letter in {X, O} at position pos
+		self.fields[pos].addFinMark(FinMark(letter, pos, num))
 		
-	def hasWon(self, letter): # check whether the letter (in {X, O}) has won the game
-		bo = self.realBoard()
+	def hasWon(self, letter): # check whether the letter (in {X, O}) has won the game and return the lowest max subscript (see wikipedia rules for quantum TTT)
+		bo, nb = self.realBoard()
 		le = letter
-		return ((bo[7] == le and bo[8] == le and bo[9] == le) or # across the top
-		(bo[4] == le and bo[5] == le and bo[6] == le) or # across the middle
-		(bo[1] == le and bo[2] == le and bo[3] == le) or # across the bottom
-		(bo[7] == le and bo[4] == le and bo[1] == le) or # down the left side
-		(bo[8] == le and bo[5] == le and bo[2] == le) or # down the middle
-		(bo[9] == le and bo[6] == le and bo[3] == le) or # down the right side
-		(bo[7] == le and bo[5] == le and bo[3] == le) or # diagonal
-		(bo[9] == le and bo[5] == le and bo[1] == le)) # diagonal
+		ttt = [False for n in range(8)]
+		maxind = [0 for n in range(8)]
+		ttt[0] 		= (bo[7] == le and bo[8] == le and bo[9] == le) # across the top
+		maxind[0]	= max(nb[7], nb[8], nb[9])
+		ttt[1] 		= (bo[4] == le and bo[5] == le and bo[6] == le) # across the middle
+		maxind[1]	= max(nb[4], nb[5], nb[6])
+		ttt[2] 		= (bo[1] == le and bo[2] == le and bo[3] == le) # across the bottom
+		maxind[2]	= max(nb[1], nb[2], nb[3])
+		ttt[3] 		= (bo[7] == le and bo[4] == le and bo[1] == le) # down the left side
+		maxind[3]	= max(nb[7], nb[4], nb[1])
+		ttt[4] 		= (bo[8] == le and bo[5] == le and bo[2] == le) # down the middle
+		maxind[4]	= max(nb[8], nb[5], nb[2])
+		ttt[5] 		= (bo[9] == le and bo[6] == le and bo[3] == le) # down the right side
+		maxind[5]	= max(nb[9], nb[6], nb[3])
+		ttt[6] 		= (bo[7] == le and bo[5] == le and bo[3] == le) # diagonal
+		maxind[6]	= max(nb[7], nb[5], nb[3])
+		ttt[7] 		= (bo[1] == le and bo[5] == le and bo[9] == le) # diagonal
+		maxind[7]	= max(nb[1], nb[5], nb[9])
+		
+		winningEvent = False
+		for t in ttt:
+			if t:
+				winningEvent = True
+		if winningEvent:
+			lowermaxsubscript = min([mi for mi, t in zip(maxind, ttt) if t])
+		else: 
+			lowermaxsubscript = -1 # failsafe option
+		return winningEvent, lowermaxsubscript
+		
 
 	def realBoard(self): # returns only the "real" board, i.e. measured fields
 		bo = [' '] * 10
+		num = [' '] * 10
 		for f in self.fields:
 			for m in f.contents:
 				if isinstance(m, FinMark):		
 					bo[f.num] = m.letter
-		return bo
+					num[f.num] = m.num
+		return bo, num
 		
 	def printBoard(self): # a crude representation of the board on screen
 	    fs = self.fields
@@ -72,7 +95,7 @@ class Board:
 			
 	def isSpaceFree(self, move):
 		# Return true if the passed move is free on the passed board.
-		board = self.realBoard()
+		board, num = self.realBoard()
 		if str(move) not in '1 2 3 4 5 6 7 8 9'.split(' '):
 		  return False
 		return board[move] == ' '
@@ -104,7 +127,7 @@ class Board:
 				res = cboard.makeSteps(nextNum, initialFieldNum)
 				if res: 
 				  return res
-				else: # if "one steep deeper" runs into a dead end, we take the other option in the list above
+				else: # if "one step deeper" runs into a dead end, we take the other option in the list above
 				  continue
 		
 	def findCycle(self, markStartingFrom):		
@@ -119,7 +142,7 @@ class Board:
 		currentField.deletePreMark_(markletter, marknum)
 		otherField.deletePreMark_(markletter, marknum)
 		listOfMarks = list(currentField.contents)
-		currentField.addFinMark(FinMark(markletter, collapseAt))
+		currentField.addFinMark(FinMark(markletter, collapseAt, marknum))
 		for markToBeReplaced in listOfMarks:
 			m = markToBeReplaced
 			if isinstance(m, FinMark):
@@ -195,11 +218,12 @@ class PreMark:
 		return pm
 		
 class FinMark:
-	def __init__(self, letter, pos):
+	def __init__(self, letter, pos, num):
 		self.letter = letter
 		self.pos = pos
+		self.num = num
 	def copy(self):
-		fm = FinMark(self.letter, self.pos)
+		fm = FinMark(self.letter, self.pos, self.num)
 		return fm
 	
 def getPlayerMove(board):
