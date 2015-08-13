@@ -1,6 +1,7 @@
 from qTTT import *
 while(True): # loop for games
 	theBoard = Board()
+	mode = getGameMode()
 	playerLetter, player2letter = inputPlayerLetter()
 	turn = whoGoesFirst()
 	print('The ' + turn + ' will go first.')
@@ -62,9 +63,14 @@ while(True): # loop for games
 		   # Check whether there is entanglement after player 1's move
 			if lastMark:
 				if theBoard.findCycle(lastMark.pos):
-					col = getPlayerCollapse(theBoard, lastMark) # let player 2 decide where to put the last mark
-					theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
-					theBoard.printBoard()
+					if mode == 'pvp': # if player vs player
+						col = getPlayerCollapse(theBoard, lastMark) # let player 2 decide where to put the last mark
+						theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
+						theBoard.printBoard()
+					else:
+						col = getComputerCollapse_Random(theBoard, lastMar)
+						theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
+						theBoard.printBoard()
 			p1won, p1lms = theBoard.hasWon(playerLetter)
 			p2won, p2lms = theBoard.hasWon(player2letter)
 			if p1won:
@@ -77,7 +83,10 @@ while(True): # loop for games
 					else:
 						print("\n")
 						theBoard.printBoard()
-						print("Player 2 has won the game!")
+						if mode == 'pvp':
+							print("Player 2 has won the game!")
+						else:
+							print("The computer has won the game!")
 						break	   			
 				else:
 					print("\n")
@@ -87,8 +96,11 @@ while(True): # loop for games
 			elif p2won:
 				print("\n")
 				theBoard.printBoard()
-				print("Player 2 has won the game!")
-				break	  
+				if mode == 'pvp':
+					print("Player 2 has won the game!")
+				else:
+					print("The computer has won the game!")
+				break	
 			else:
 				if isBoardFull(theBoard):
 				  print("\n")
@@ -98,7 +110,11 @@ while(True): # loop for games
 			turn = "player"
 		  
 		   # if the game hasn't ended, make a move
-			pos1, pos2 = getPlayerMove(theBoard)
+			if mode == 'pvp':
+				pos1, pos2 = getPlayerMove(theBoard)
+			else:
+				pos1, pos2 = getComputerMove_Random(theBoard)
+				
 			lastMark = theBoard.addPreMark(player2letter, numMark*2+1, pos1, pos2)
 		   
 			numMark += 1
