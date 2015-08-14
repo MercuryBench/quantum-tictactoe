@@ -60,6 +60,14 @@ while(True): # loop for games
 			print("It's player 2's turn")
 			# Player 2's turn or computer.
 			theBoard.printBoard()
+			val = None
+			move = None
+			if mode != 'pvp':
+				if lastMark:
+					[val, move] = minimax(theBoard, numMark+1, numMark+1, True, player2letter, lastMark.num+1, playerLetter, lastMove = lastMark)
+				else:
+					[val, move] = minimax(theBoard, numMark+1, numMark+1, True, player2letter, 1, playerLetter, lastMove = None)
+			
 		   # Check whether there is entanglement after player 1's move
 			if lastMark:
 				if theBoard.findCycle(lastMark.pos):
@@ -68,8 +76,10 @@ while(True): # loop for games
 						theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
 						theBoard.printBoard()
 					else:
-						col = getComputerCollapse_Random(theBoard, lastMark)
-						theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
+						
+						#col = getComputerCollapse_Random(theBoard, lastMark)
+						#theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
+						theBoard.collapse(move[0])
 						theBoard.printBoard()
 			p1won, p1lms = theBoard.hasWon(playerLetter)
 			p2won, p2lms = theBoard.hasWon(player2letter)
@@ -112,10 +122,10 @@ while(True): # loop for games
 		   # if the game hasn't ended, make a move
 			if mode == 'pvp':
 				pos1, pos2 = getPlayerMove(theBoard)
+				lastMark = theBoard.addPreMark(player2letter, numMark*2+1, pos1, pos2)
 			else:
-				pos1, pos2 = getComputerMove_Random(theBoard)
-				
-			lastMark = theBoard.addPreMark(player2letter, numMark*2+1, pos1, pos2)
+				#pos1, pos2 = getComputerMove_Random(theBoard)
+				lastMark = theBoard.addPreMark(move[1][0], move[1][1], move[1][2], move[1][3])
 		   
 			numMark += 1
 

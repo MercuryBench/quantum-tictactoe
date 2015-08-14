@@ -112,48 +112,74 @@ class Board:
 		# both shouldn't be empty at the same time
 		c_p = movecode[0]
 		m_p = movecode[1]
-		if c_p != "":
-			self.collapse(c_p[0], c_p[1], int(c_p[2]), int(c_p[3]))
-		if m_p != "":
-			self.addPreMark(m_p[0], m_p[1], int(m_p[2]), int(m_p[3]))
+		pm = None
+		if c_p != []:
+			self.collapse(c_p[0], c_p[1], c_p[2], c_p[3])
+		if m_p != []:
+			pm = self.addPreMark(m_p[0], m_p[1], m_p[2], m_p[3])
+		return pm
 
 	def getListOfMovecodes(self, lastMark, letter, num): # this is a sophisticated version of getListOfMoves because it tries to find all possible combinations of collapses and premark settings in one step
 		# first find possibility of collapse
 		collapseNecessary = False
-		c_p1 = ""
-		c_p2 = ""
-		if (self.findCycle(lastMark.pos)):
-			collapseNecessary = True
-			c_p1 = lastMark.letter + str(lastMark.num) + str(lastMark.pos) + str(lastMark.otherpos)
-			print(c_p1)
-			c_p2 = lastMark.letter + str(lastMark.num) + str(lastMark.otherpos) + str(lastMark.pos)
-			print(c_p2)
+		c_p1 = []
+		c_p2 = []
+		if lastMark != None:
+			if (self.findCycle(lastMark.pos)):
+				collapseNecessary = True
+				c_p1 = [lastMark.letter, lastMark.num, lastMark.pos, lastMark.otherpos]
+				c_p2 = [lastMark.letter, lastMark.num, lastMark.otherpos, lastMark.pos]
 		copyboard1 = self.copy()
 		copyboard2 = self.copy()
+		gameEnds1 = False
+		gameEnds2 = False
 		if collapseNecessary:
-			copyboard1.collapse(c_p1[0], c_p1[1], int(c_p1[2]), int(c_p1[3]))
-			copyboard2.collapse(c_p2[0], c_p2[1], int(c_p2[2]), int(c_p2[3]))
+			copyboard1.collapse(c_p1[0], c_p1[1], c_p1[2], c_p1[3])
+			copyboard2.collapse(c_p2[0], c_p2[1], c_p2[2], c_p2[3])
+			if copyboard1.hasWon(letter)[0]:
+			    # current player has won
+			    gameEnds1 = True
+			elif copyboard1.hasWon(lastMark.letter)[0]:
+			    # other player has won
+			    gameEnds1 = True
+			if copyboard2.hasWon(letter)[0]:
+			    # current player has won
+			    gameEnds2 = True
+			elif copyboard2.hasWon(lastMark.letter)[0]:
+			    # other player has won
+			    gameEnds2 = True
 		
 		# then try all possible following premark settings
 		listFreePos1 = [pm for pm in range(1, 10) if copyboard1.isSpaceFree(pm)]
 		listFreePos2 = [pm for pm in range(1, 10) if copyboard2.isSpaceFree(pm)]	
 		listPossPM1 = []
 		listPossPM2 = []
+
 		for m in range(len(listFreePos1)):
 			for n in range(m+1, len(listFreePos1)):
-				listPossPM1.append(letter + str(num) + str(listFreePos1[m]) + str(listFreePos1[n]))	
+				listPossPM1.append([letter, num, listFreePos1[m], listFreePos1[n]])
+
 		if collapseNecessary:
 			for m in range(len(listFreePos2)):
 				for n in range(m+1, len(listFreePos2)):
-					listPossPM2.append(letter + str(num) + str(listFreePos2[m]) + str(listFreePos2[n]))
+					listPossPM2.append([letter, num, listFreePos2[m], listFreePos2[n]])
 		lomc = []
+		
 		if len(listPossPM1) > 0:
+		  if not gameEnds1:
 			for m_p1 in listPossPM1:
 				lomc.append([c_p1, m_p1])
+		  else:
+		    lomc.append([c_p1, []])		
+		  if not gameEnds2:
 			if collapseNecessary: # only if there is a collapse first, those two options are different
+			  if (len(listPossPM2) > 0):
 				for m_p2 in listPossPM2:
 					lomc.append([c_p2, m_p2])
-		else: lomc = [[c_p1, ""], [c_p2, ""]]
+		  else:
+		    lomc.append([c_p2, []])
+		elif collapseNecessary:
+			lomc = [[c_p1, []], [c_p2, []]]
 		return lomc
 			
 
@@ -369,16 +395,95 @@ def playAgain():
 	# This function returns True if the player wants to play again, otherwise it returns False.
 	print('Do you want to play again? (yes or no)')
 	return raw_input().lower().startswith('y')
+def valueOfPosition(board, maxplayerLetter, minplayerLetter):
+	wincond = [board.hasWon(maxplayerLetter), board.hasWon(minplayerLetter)]
+	if wincond[0][0]: # if player 1 has Tic Tac Toe
+		if wincond[1][0]: # and player 2 has Tic Tac Toe
+			if wincond[0][1] < wincond[1][1]: # player 1 actually won
+				return 1
+			else:
+				return -1
+		else: # only player 1 has TTT
+			return 1
+	elif wincond[1][0]:
+		return -1
+	else:
+		return 0
+
+def minimax(board, steps, totalNumSteps, maximizingPlayer, playerLetter, currentNum, adversaryLetter, lastMove=None, savedMove=None, debug = False):
+	lomc = board.getListOfMovecodes(lastMove, playerLetter, currentNum)
+	if steps == 0 or lomc == []:	
+		if maximizingPlayer:
+			return (valueOfPosition(board, playerLetter, adversaryLetter), savedMove)
+		else:
+			return (valueOfPosition(board, adversaryLetter, playerLetter), savedMove)			
+	
+	if maximizingPlayer:
+		#print("Is max player")
+		maxVal = -100 # should be inf
+		for move in lomc:
+			#print('Trying move {0}'.format(lomc.getIndex(move)))
+			copy = board.copy()
+			pm = copy.makeMove(move)
+			#copy.printBoard()
+			if move[1] == []: # game has ended
+				val = valueOfPosition(copy, playerLetter, adversaryLetter)
+				
+			else: 
+				val = minimax(copy, steps-1, totalNumSteps, False, adversaryLetter, currentNum+1, playerLetter, lastMove=pm, savedMove = savedMove)[0]
+			if val > maxVal:
+				maxVal = val
+				if steps == totalNumSteps:
+					savedMove = move	
+		#print('Optimal Choice is move {0} with value {1}'.format(savedMove, maxVal))
+		return (maxVal, savedMove)
+	else:
+		minVal = 100
+		for move in lomc:
+			#print('Trying move {0}'.format(lomc.getIndex(move)))
+			copy = board.copy()
+			pm = copy.makeMove(move)
+			#copy.printBoard()
+			
+			if move[1] == []: # game has ended
+				return (valueOfPosition(copy, adversaryLetter, playerLetter), savedMove)	
+			else:
+				val = minimax(copy, steps-1, totalNumSteps, True, adversaryLetter, currentNum+1, playerLetter, lastMove = pm, savedMove = savedMove)[0]
+			minVal = min(val, minVal)
+		return (minVal, savedMove)
 
 b = Board()
-b.addFinMark('O', 2, 1)
-b.addFinMark('X', 4, 2)
-b.addFinMark('O', 5, 3)
-b.addFinMark('X', 6, 4)
-b.addFinMark('O', 7, 5)
-b.addFinMark('X', 8, 6)
-b.addPreMark('O', 7, 3, 9)
-b.addPreMark('X', 8, 1, 9)
-pm = b.addPreMark('O', 9, 1, 3)
+b.addFinMark('O', 8, 1)
+b.addFinMark('X', 5, 2)
+b.addFinMark('O', 6, 3)
+b.addPreMark('X', 4, 1, 9)
+b.addPreMark('O', 5, 3, 9)
+b.addFinMark('X', 7, 6)
+pm = b.addPreMark('O', 7, 1, 3)
+print(b.getListOfMovecodes(pm, 'X', 8))
+[val, move] = minimax(b, 3, 3, True, 'X', 8, 'O', lastMove = pm)
 b.printBoard()
-print(b.getListOfMovecodes(pm, 'X', 10))
+
+"""
+b = Board()
+b.addFinMark('X', 1, 10)
+b.addFinMark('O', 3, 1)
+b.addFinMark('X', 7, 2)
+b.addFinMark('O', 9, 3)
+b.addPreMark('X', 4, 4, 6)
+b.addFinMark('O', 5, 5)
+b.addPreMark('X', 6, 4, 8)
+pm = b.addPreMark('O', 7, 6, 8)
+b.printBoard()
+print(b.getListOfMovecodes(pm, 'X', 8))
+[val, move] = minimax(b, 3, 3, True, 'X', 8, 'O', lastMove = pm)
+"""
+"""
+b = Board()
+b.addPreMark('X', 1, 5, 6)
+b.addPreMark('O', 2, 9, 2)
+pm = b.addPreMark('X', 3, 4, 5)
+b.printBoard()
+lomc = b.getListOfMovecodes(pm, 'O', 4)
+
+[val, move] = minimax(b, 3, 3, True, 'O', 4, 'X', lastMove = pm)"""
