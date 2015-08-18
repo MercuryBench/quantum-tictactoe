@@ -410,13 +410,13 @@ def valueOfPosition(board, maxplayerLetter, minplayerLetter):
 	else:
 		return 0
 
-def minimax(board, steps, totalNumSteps, maximizingPlayer, playerLetter, currentNum, adversaryLetter, lastMove=None, savedMove=None, debug = False):
+def minimax(board, steps, totalNumSteps, maximizingPlayer, playerLetter, currentNum, adversaryLetter, lastMove=None, savedMoves=[], debug = False):
 	lomc = board.getListOfMovecodes(lastMove, playerLetter, currentNum)
 	if steps == 0 or lomc == []:	
 		if maximizingPlayer:
-			return (valueOfPosition(board, playerLetter, adversaryLetter), savedMove)
+			return (valueOfPosition(board, playerLetter, adversaryLetter), savedMoves)
 		else:
-			return (valueOfPosition(board, adversaryLetter, playerLetter), savedMove)			
+			return (valueOfPosition(board, adversaryLetter, playerLetter), savedMoves)			
 	
 	if maximizingPlayer:
 		#print("Is max player")
@@ -430,13 +430,13 @@ def minimax(board, steps, totalNumSteps, maximizingPlayer, playerLetter, current
 				val = valueOfPosition(copy, playerLetter, adversaryLetter)
 				
 			else: 
-				val = minimax(copy, steps-1, totalNumSteps, False, adversaryLetter, currentNum+1, playerLetter, lastMove=pm, savedMove = savedMove)[0]
-			if val > maxVal:
+				val = minimax(copy, steps-1, totalNumSteps, False, adversaryLetter, currentNum+1, playerLetter, lastMove=pm, savedMoves = savedMoves)[0]
+			if val >= maxVal:
 				maxVal = val
 				if steps == totalNumSteps:
-					savedMove = move	
-		#print('Optimal Choice is move {0} with value {1}'.format(savedMove, maxVal))
-		return (maxVal, savedMove)
+					savedMoves.append(move)
+		#print('Optimal Choice is move {0} with value {1}'.format(savedMoves, maxVal))
+		return (maxVal, savedMoves)
 	else:
 		minVal = 100
 		for move in lomc:
@@ -446,12 +446,20 @@ def minimax(board, steps, totalNumSteps, maximizingPlayer, playerLetter, current
 			#copy.printBoard()
 			
 			if move[1] == []: # game has ended
-				return (valueOfPosition(copy, adversaryLetter, playerLetter), savedMove)	
+				return (valueOfPosition(copy, adversaryLetter, playerLetter), savedMoves)	
 			else:
-				val = minimax(copy, steps-1, totalNumSteps, True, adversaryLetter, currentNum+1, playerLetter, lastMove = pm, savedMove = savedMove)[0]
+				val = minimax(copy, steps-1, totalNumSteps, True, adversaryLetter, currentNum+1, playerLetter, lastMove = pm, savedMoves = savedMoves)[0]
 			minVal = min(val, minVal)
-		return (minVal, savedMove)
+		return (minVal, savedMoves)
 
+def getNumRecursions():
+	val = ""
+	while val not in "1 2 3 4 5 6 7 8 9 10".split(" "):
+		print("How many recursions? (1-10)")
+		val = raw_input()
+	return int(val)
+
+"""
 b = Board()
 b.addFinMark('O', 8, 1)
 b.addFinMark('X', 5, 2)
@@ -462,7 +470,7 @@ b.addFinMark('X', 7, 6)
 pm = b.addPreMark('O', 7, 1, 3)
 print(b.getListOfMovecodes(pm, 'X', 8))
 [val, move] = minimax(b, 3, 3, True, 'X', 8, 'O', lastMove = pm)
-b.printBoard()
+b.printBoard()"""
 
 """
 b = Board()

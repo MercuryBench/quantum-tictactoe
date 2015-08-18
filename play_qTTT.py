@@ -1,14 +1,14 @@
 from qTTT import *
 while(True): # loop for games
 	theBoard = Board()
-	mode = getGameMode()
-	playerLetter, player2letter = inputPlayerLetter()
+	mode = "pvc" #getGameMode()
+	playerLetter, player2letter = "X", "O" #inputPlayerLetter()
 	turn = whoGoesFirst()
 	print('The ' + turn + ' will go first.')
 	lastMark = None # needed for keeping track of the last mark in order to facilitate collapse
-	numMark = 0 # needed for numbering marks
+	rec = 2
 	while (True): # loop for turns
-		if turn == 'player':
+		if turn == 'player 1':
 			print("It's player 1's turn")
 			# Player 1's turn.
 			theBoard.printBoard()
@@ -54,8 +54,12 @@ while(True): # loop for games
 			turn = "player2"
 		   # if the game hasn't ended, make a move
 			pos1, pos2 = getPlayerMove(theBoard)
-		   
-			lastMark = theBoard.addPreMark(playerLetter, numMark*2, pos1, pos2)
+			if lastMark:
+				lastMark = theBoard.addPreMark(playerLetter, lastMark.num+1, pos1, pos2)
+			else:
+				lastMark = theBoard.addPreMark(playerLetter, 1, pos1, pos2)
+			if mode != 'pvp':
+				rec = getNumRecursions()
 		else:      
 			print("It's player 2's turn")
 			# Player 2's turn or computer.
@@ -64,10 +68,10 @@ while(True): # loop for games
 			move = None
 			if mode != 'pvp':
 				if lastMark:
-					[val, move] = minimax(theBoard, numMark+1, numMark+1, True, player2letter, lastMark.num+1, playerLetter, lastMove = lastMark)
+					[val, moves] = minimax(theBoard, rec, rec, True, player2letter, lastMark.num+1, playerLetter, lastMove = lastMark, savedMoves = [])
 				else:
-					[val, move] = minimax(theBoard, numMark+1, numMark+1, True, player2letter, 1, playerLetter, lastMove = None)
-			
+					[val, moves] = minimax(theBoard, rec, rec, True, player2letter, 1, playerLetter, lastMove = None, savedMoves = [])
+				move = random.choice(moves)
 		   # Check whether there is entanglement after player 1's move
 			if lastMark:
 				if theBoard.findCycle(lastMark.pos):
@@ -79,7 +83,7 @@ while(True): # loop for games
 						
 						#col = getComputerCollapse_Random(theBoard, lastMark)
 						#theBoard.collapse(lastMark.letter, lastMark.num, col[0], col[1])
-						theBoard.collapse(move[0])
+						theBoard.collapse(move[0][0], move[0][1], move[0][2], move[0][3])
 						theBoard.printBoard()
 			p1won, p1lms = theBoard.hasWon(playerLetter)
 			p2won, p2lms = theBoard.hasWon(player2letter)
@@ -117,17 +121,18 @@ while(True): # loop for games
 				  theBoard.printBoard()
 				  print("The game is a tie!")
 				  break
-			turn = "player"
+			turn = "player 1"
 		  
 		   # if the game hasn't ended, make a move
 			if mode == 'pvp':
 				pos1, pos2 = getPlayerMove(theBoard)
-				lastMark = theBoard.addPreMark(player2letter, numMark*2+1, pos1, pos2)
+				if lastMark:
+					lastMark = theBoard.addPreMark(player2letter, lastMark.num+1, pos1, pos2)
+				else:
+					lastMark = theBoard.addPreMark(player2letter, 1, pos1, pos2)
 			else:
 				#pos1, pos2 = getComputerMove_Random(theBoard)
 				lastMark = theBoard.addPreMark(move[1][0], move[1][1], move[1][2], move[1][3])
-		   
-			numMark += 1
 
 	if not playAgain():
 		break
