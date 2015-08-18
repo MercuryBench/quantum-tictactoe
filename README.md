@@ -6,4 +6,4 @@ Just run play_qTTT.py via
 
 python play_qTTT.py
 
-in your console and play against yourself or a friend. There is no AI implemented yet.
+in your console and play against a friend or against the computer (which is implemented via a minimax algorithm).
