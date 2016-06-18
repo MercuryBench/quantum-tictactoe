@@ -1,6 +1,6 @@
 # quantum-tictactoe
 
-This is a really bad implementation of Quantum Tic Tac Toe
+This is a really bad implementation of Quantum Tic Tac Toe (use the repo graph-quantum-ttt instead)
 
 Just run play_qTTT.py via
 
